@@ -14,7 +14,7 @@
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 
     <style>
-        /* --- ESTILOS VISUALES --- */
+        /* --- ESTILOS VISUALES (Iguales para mantener el diseño pro) --- */
         :root {
             --bg-color: #f8f9fa;
             --card-bg: #ffffff;
@@ -54,6 +54,7 @@
             width: 100%; height: 100%;
         }
 
+        /* Ajuste del modelo para que ocupe bien el espacio */
         model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
 
         .info-wrapper {
@@ -149,10 +150,7 @@
                 <div class="spinner"></div>
             </div>
 
-            <!-- 
-                CONFIGURACIÓN PARA CARPETA ASSETS
-                Nota cómo ahora dice "assets/modelo.glb"
-            -->
+            <!-- CONFIGURACIÓN DEL MODELO -->
             <model-viewer 
                 id="ar-viewer"
                 src="assets/modelo.glb"
@@ -160,16 +158,21 @@
                 poster="assets/poster.webp"
                 alt="Demo 3D Profesional"
                 
+                /* AR SETUP */
                 ar
                 ar-placement="floor"
                 ar-modes="webxr scene-viewer quick-look"
                 ar-scale="auto"
                 
+                /* VISUALIZACIÓN */
                 shadow-intensity="1"
                 shadow-softness="0.8"
                 camera-controls
-                auto-rotate
-                rotation-per-second="20deg"
+                
+                /* HE QUITADO 'auto-rotate' PARA QUE NO SE MUEVA SOLO */
+                interaction-prompt="auto"
+                interaction-prompt-style="basic"
+                
                 tone-mapping="commerce"
                 exposure="1"
             >
@@ -177,7 +180,7 @@
             </model-viewer>
 
             <div class="viewer-controls">
-                <button class="icon-btn" onclick="toggleRotate()" aria-label="Rotar"><span class="material-icons-round">360</span></button>
+                <!-- He cambiado el botón de rotar a "Resetear" ya que ya no gira solo -->
                 <button class="icon-btn" onclick="resetCam()" aria-label="Centrar"><span class="material-icons-round">center_focus_strong</span></button>
                 <button class="icon-btn" onclick="toggleZoom()" aria-label="Zoom"><span class="material-icons-round">zoom_in</span></button>
             </div>
@@ -190,8 +193,9 @@
             <div class="price-tag">Calidad Estudio 8K</div>
             
             <p>
-                Experimenta el futuro del e-commerce. Este objeto ha sido optimizado para visualización web. 
-                Pulsa el botón de abajo, apunta al suelo con tu cámara y verás el producto en tamaño real en tu espacio.
+                Experimenta el futuro del e-commerce. Modelo de alta fidelidad estático.
+                Usa el dedo o el mouse para girarlo manualmente.
+                Pulsa el botón de abajo para verlo en Realidad Aumentada.
             </p>
 
             <button class="btn-ar" onclick="activateAR()">
@@ -212,18 +216,28 @@
         const loader = document.getElementById('loader');
         const qrImg = document.getElementById('qr-code');
 
+        // QR Automático
         window.onload = () => {
             const currentUrl = window.location.href;
             qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&color=000000&bgcolor=ffffff&data=${encodeURIComponent(currentUrl)}`;
         };
 
+        // Ocultar Loader al cargar
         viewer.addEventListener('progress', (e) => {
             if(e.detail.totalProgress === 1) { loader.classList.add('hidden'); }
         });
 
-        function toggleRotate() { viewer.autoRotate = !viewer.autoRotate; }
-        function resetCam() { viewer.cameraOrbit = "0deg 75deg 105%"; viewer.fieldOfView = "auto"; }
-        function toggleZoom() { const currentFov = viewer.getFieldOfView(); viewer.fieldOfView = currentFov > 20 ? "10deg" : "auto"; }
+        // Funciones de control
+        function resetCam() { 
+            // Vuelve a la posición inicial
+            viewer.cameraOrbit = "0deg 75deg 105%"; 
+            viewer.fieldOfView = "auto"; 
+        }
+
+        function toggleZoom() { 
+            const currentFov = viewer.getFieldOfView(); 
+            viewer.fieldOfView = currentFov > 20 ? "10deg" : "auto"; 
+        }
 
         function activateAR() {
             if (viewer.canActivateAR) {
