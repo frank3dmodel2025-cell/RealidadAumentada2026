@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualización 3D & AR | Estable</title>
+    <title>Visualización 3D & AR | Medidas Reales</title>
     
     <!-- Fuentes y Iconos -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,100 +14,24 @@
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 
     <style>
-        /* --- ESTILOS VISUALES (Diseño Limpio) --- */
-        :root {
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --text-main: #1a1a1a;
-            --text-sec: #6c757d;
-            --accent: #000000;
-            --radius-card: 24px;
-            --radius-btn: 12px;
-        }
-
+        /* (Tus estilos anteriores se mantienen igual) */
+        :root { --bg-color: #f8f9fa; --card-bg: #ffffff; --text-main: #1a1a1a; --text-sec: #6c757d; --accent: #000000; --radius-card: 24px; --radius-btn: 12px; }
         * { box-sizing: border-box; }
-        
-        body {
-            margin: 0; padding: 0;
-            font-family: 'Manrope', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            height: 100vh; width: 100vw;
-            overflow-x: hidden;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        .app-container {
-            background: var(--card-bg);
-            width: 95%; max-width: 1300px; height: 90vh;
-            border-radius: var(--radius-card);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.06);
-            display: grid; grid-template-columns: 1.5fr 1fr;
-            overflow: hidden; position: relative;
-        }
-
-        /* Área del Modelo 3D */
-        .viewer-wrapper {
-            position: relative;
-            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f1f2f4 100%);
-            width: 100%; height: 100%;
-        }
-
+        body { margin: 0; padding: 0; font-family: 'Manrope', sans-serif; background-color: var(--bg-color); color: var(--text-main); height: 100vh; width: 100vw; overflow-x: hidden; display: flex; align-items: center; justify-content: center; }
+        .app-container { background: var(--card-bg); width: 95%; max-width: 1300px; height: 90vh; border-radius: var(--radius-card); box-shadow: 0 20px 40px rgba(0,0,0,0.06); display: grid; grid-template-columns: 1.5fr 1fr; overflow: hidden; position: relative; }
+        .viewer-wrapper { position: relative; background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f1f2f4 100%); width: 100%; height: 100%; }
         model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
-
-        /* Área de Información */
-        .info-wrapper {
-            padding: 3rem;
-            display: flex; flex-direction: column; justify-content: center;
-            overflow-y: auto;
-        }
-
+        .info-wrapper { padding: 3rem; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; }
         h1 { font-size: 2.5rem; font-weight: 800; margin: 0 0 1rem 0; }
         .price-tag { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; }
         p { color: var(--text-sec); line-height: 1.7; margin-bottom: 2.5rem; }
-
-        /* Botón AR Principal */
-        .btn-ar {
-            background-color: var(--accent); color: white;
-            border: none; padding: 18px; border-radius: var(--radius-btn);
-            font-size: 1rem; font-weight: 700;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            gap: 12px; width: 100%;
-            transition: transform 0.2s;
-        }
+        .btn-ar { background-color: var(--accent); color: white; border: none; padding: 18px; border-radius: var(--radius-btn); font-size: 1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; transition: transform 0.2s; }
         .btn-ar:active { transform: scale(0.98); }
-
-        /* Controles (Reset) */
-        .viewer-controls {
-            position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-            z-index: 10;
-        }
-        .icon-btn {
-            background: rgba(255, 255, 255, 0.9); border: 1px solid #eee;
-            width: 48px; height: 48px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-        }
-
-        /* Loader */
-        .loading-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; display: flex; align-items: center; justify-content: center;
-            z-index: 20; transition: opacity 0.5s; pointer-events: none;
-        }
+        .viewer-controls { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 10; }
+        .icon-btn { background: rgba(255, 255, 255, 0.9); border: 1px solid #eee; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 20; transition: opacity 0.5s; pointer-events: none; }
         .loading-overlay.hidden { opacity: 0; }
-
-        /* Responsive Mobile */
-        @media (max-width: 900px) {
-            .app-container { 
-                grid-template-columns: 1fr; grid-template-rows: 60vh auto; 
-                height: 100%; width: 100%; border-radius: 0; display: flex; flex-direction: column;
-            }
-            .viewer-wrapper { height: 60vh; min-height: 400px; border-bottom: 1px solid #eee; }
-            .info-wrapper { padding: 20px; height: auto; }
-            h1 { font-size: 1.8rem; }
-            body { display: block; height: auto; }
-        }
+        @media (max-width: 900px) { .app-container { grid-template-columns: 1fr; grid-template-rows: 60vh auto; height: 100%; width: 100%; border-radius: 0; display: flex; flex-direction: column; } .viewer-wrapper { height: 60vh; min-height: 400px; border-bottom: 1px solid #eee; } .info-wrapper { padding: 20px; height: auto; } h1 { font-size: 1.8rem; } body { display: block; height: auto; } }
     </style>
 </head>
 <body>
@@ -115,21 +39,19 @@
     <div class="app-container">
         
         <div class="viewer-wrapper">
-            <div class="loading-overlay" id="loader">Wait...</div>
+            <div class="loading-overlay" id="loader">Calibrando Escala...</div>
 
             <!-- 
-                CONFIGURACIÓN ANTI-MOVIMIENTO 
-                1. ar-placement="floor": Obliga a buscar el suelo.
-                2. ar-modes="webxr...": Usa el modo web nativo (mejor control).
-                3. interaction-prompt="none": Quita la mano que te dice "muévelo".
-                4. SIN auto-rotate.
+                CAMBIOS CLAVE:
+                1. ar-scale="fixed": Bloquea el zoom en AR. Es VITAL para que no "baile".
+                2. shadow-softness="0": Una sombra dura ayuda al cerebro a fijar el objeto en el suelo.
+                3. src: Asegúrate que tu ruta sea correcta.
             -->
             <model-viewer 
                 id="ar-viewer"
                 src="assets/modelo.glb"
                 ios-src="assets/modelo.usdz"
-                poster="assets/poster.webp"
-                alt="Modelo 3D Fijo"
+                alt="Modelo 3D"
                 
                 ar
                 ar-placement="floor"
@@ -137,9 +59,8 @@
                 ar-scale="fixed" 
                 
                 camera-controls
-                interaction-prompt="none"
                 shadow-intensity="1"
-                tone-mapping="commerce"
+                shadow-softness="0.5" 
                 exposure="1"
             >
                 <button slot="ar-button" style="display:none;" id="native-ar-btn"></button>
@@ -154,17 +75,18 @@
 
         <div class="info-wrapper">
             <h1>Producto AR</h1>
-            <div class="price-tag">Modelo Estático</div>
+            <div class="price-tag">Tamaño Real: 30cm x 15cm</div>
             <p>
-                <strong>Instrucciones para AR:</strong><br>
-                1. Pulsa el botón "Colocar en AR".<br>
-                2. Apunta la cámara al suelo y muévela suavemente.<br>
-                3. Cuando aparezca un círculo/guía, <strong>toca la pantalla</strong> para fijar el objeto.
+                Este modelo está programado para aparecer con medidas exactas.
+                <br><br>
+                <strong>Para mejor estabilidad:</strong><br>
+                - Apunta a una superficie con textura (alfombra, madera, suelo rugoso).<br>
+                - No apuntes a suelos blancos brillantes o espejos.
             </p>
 
             <button class="btn-ar" onclick="activateAR()">
                 <span class="material-icons-round">view_in_ar</span>
-                <span>Colocar en AR</span>
+                <span>Ver en tamaño real</span>
             </button>
         </div>
 
@@ -174,9 +96,37 @@
         const viewer = document.getElementById('ar-viewer');
         const loader = document.getElementById('loader');
 
-        // Ocultar carga
-        viewer.addEventListener('progress', (e) => {
-            if(e.detail.totalProgress === 1) loader.classList.add('hidden');
+        // --- SOLUCIÓN PARA MEDIDAS EXACTAS ---
+        viewer.addEventListener('load', () => {
+            // Ocultar loader
+            loader.classList.add('hidden');
+
+            // 1. Obtener dimensiones actuales del modelo (en metros, independiente de la escala)
+            const dimensions = viewer.getDimensions();
+            
+            // Asumimos que la longitud es el eje Z (depth) o X (width). 
+            // Vamos a buscar el lado más largo para asegurar que sea 30cm (0.3m).
+            // O si sabes que el largo es específicamente Z, usa dimensions.z
+            
+            // Supongamos que el "Largo" es la dimensión mayor del objeto:
+            const currentLength = Math.max(dimensions.x, dimensions.y, dimensions.z);
+            
+            // Medida objetivo: 30 cm = 0.3 metros
+            const targetLength = 0.30; 
+
+            if (currentLength === 0) return; // Evitar división por cero
+
+            // 2. Calcular el factor de escala necesario
+            const scaleFactor = targetLength / currentLength;
+
+            // 3. Aplicar la escala al modelo
+            // Esto redimensiona el modelo visualmente para que sea exactamente de 30cm
+            viewer.scale = `${scaleFactor} ${scaleFactor} ${scaleFactor}`;
+
+            // DEBUG: Ver en consola si funcionó
+            console.log(`Dimensiones originales: ${currentLength}m`);
+            console.log(`Factor de escala aplicado: ${scaleFactor}`);
+            console.log(`Nueva longitud teórica: ${currentLength * scaleFactor}m (Debe ser 0.3)`);
         });
 
         // Resetear cámara
@@ -190,7 +140,7 @@
             if (viewer.canActivateAR) {
                 viewer.activateAR();
             } else {
-                alert("Tu dispositivo no soporta Realidad Aumentada o necesitas abrir esto en un móvil.");
+                alert("Para ver las medidas reales (AR), abre esto en un móvil compatible.");
             }
         }
     </script>
