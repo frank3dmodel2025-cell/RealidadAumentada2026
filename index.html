@@ -28,7 +28,8 @@
             margin: 0; padding: 0;
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
-            height: 100dvh; width: 100vw;
+            /* Usamos 100dvh para mejor compatibilidad móvil */
+            height: 100dvh; width: 100vw; 
             overflow: hidden;
             display: flex; align-items: center; justify-content: center;
             color: var(--nike-black);
@@ -57,9 +58,10 @@
             background: #ffffff;
             width: 100%; height: 100%;
             max-width: 100%; 
-            display: grid; grid-template-columns: 1.8fr 1.2fr;
+            display: grid; 
+            grid-template-columns: 1.8fr 1.2fr; /* Desktop: 3D más grande que info */
             overflow: hidden;
-            padding-top: 60px; 
+            padding-top: 60px; /* Espacio para el navbar */
         }
         
         /* --- VISOR 3D Y FOTO --- */
@@ -71,7 +73,6 @@
             overflow: hidden;
         }
 
-        /* Elementos superpuestos en el visor */
         .element-layer {
             width: 100%; height: 100%;
             position: absolute; top: 0; left: 0;
@@ -83,11 +84,10 @@
 
         model-viewer { width: 100%; height: 100%; outline: none; }
         
-        /* Estilo para la imagen estática */
         .static-img {
             width: 100%; height: 100%;
-            object-fit: contain; /* Ajusta la imagen sin recortarla */
-            padding: 40px;
+            object-fit: contain; 
+            padding: 40px; /* Espacio para la imagen dentro del contenedor */
         }
 
         /* TOGGLE 3D / FOTO */
@@ -106,7 +106,6 @@
         }
         .toggle-btn.active { background: var(--nike-black); color: white; }
 
-
         .badge-new {
             position: absolute; top: 30px; left: 30px;
             background: var(--nike-black); color: white;
@@ -115,22 +114,6 @@
             z-index: 5;
         }
 
-        /* Loader */
-        .loader-overlay {
-            position: absolute; inset: 0;
-            background: var(--nike-light-gray); z-index: 20;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            transition: opacity 0.5s; pointer-events: none;
-        }
-        .loader-overlay.hidden { opacity: 0; }
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid #ddd;
-            border-top-color: var(--nike-black); border-radius: 50%;
-            animation: spin 0.8s infinite linear; margin-bottom: 15px;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        
         /* Botón Reset Cámara (Solo visible en modo 3D) */
         .controls-overlay {
             position: absolute; bottom: 30px; right: 30px; z-index: 5;
@@ -146,7 +129,7 @@
             padding: 40px 60px;
             display: flex; flex-direction: column; 
             background: white;
-            overflow-y: auto;
+            overflow-y: auto; /* Permite scroll si el contenido es largo */
         }
 
         /* Header con Titulo y Boton AR alineados */
@@ -161,7 +144,7 @@
             font-size: 3rem; line-height: 0.95; letter-spacing: -1px; text-transform: uppercase;
         }
 
-        /* Botón AR Circular (Estilo prominente) */
+        /* Botón AR Circular */
         .ar-circle-btn {
             background: var(--nike-black); color: white;
             border: none; width: 50px; height: 50px;
@@ -169,11 +152,11 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             transition: transform 0.2s;
-            flex-shrink: 0; /* Evita que se aplaste */
+            flex-shrink: 0; 
             margin-left: 15px;
         }
         .ar-circle-btn:active { transform: scale(0.9); }
-        .ar-label { font-size: 10px; text-align: center; margin-top: 5px; font-weight: 700; color: var(--nike-black); display: none;} 
+        .ar-circle-btn .material-icons-round { font-size: 24px; } /* Ajuste de tamaño de icono */
 
         .product-price { font-size: 1.2rem; font-weight: 500; margin-bottom: 25px; margin-top: 10px; }
         
@@ -202,22 +185,75 @@
             width: 100%; text-transform: uppercase;
         }
 
-        /* --- MOBILE --- */
+        /* --- MOBILE RESPONSIVENESS (MAX-WIDTH 900px) --- */
         @media (max-width: 900px) {
-            .fake-nav { padding: 0 20px; }
-            .app-container { 
-                grid-template-columns: 1fr; 
-                grid-template-rows: 50% 50%; 
-                padding-top: 50px;
+            .fake-nav { 
+                padding: 0 20px; 
+                height: 50px; /* Navbar más pequeño en móvil */
             }
-            .info-wrapper { padding: 25px; }
-            .product-title { font-size: 2rem; }
-            .header-row { align-items: center; } /* Centrado vertical en móvil */
-            .product-desc { display: none; } 
-            .size-grid { grid-template-columns: repeat(5, 1fr); margin-bottom: 20px; }
+            .nav-logo { font-size: 20px; }
+            .lang-switch { font-size: 11px; padding: 3px 8px; }
+
+            .app-container { 
+                grid-template-columns: 1fr; /* Columna única en móvil */
+                grid-template-rows: 50dvh 50dvh; /* Visor y info con mitad de altura cada uno */
+                padding-top: 50px; /* Ajusta por el navbar más pequeño */
+            }
             
-            /* Ajuste botones toggle */
-            .media-toggle { bottom: 20px; }
+            .viewer-wrapper {
+                background: var(--nike-light-gray); /* Color de fondo para visor */
+            }
+            .static-img { padding: 20px; } /* Menos padding para la imagen */
+
+            .badge-new { top: 20px; left: 20px; font-size: 10px; padding: 4px 10px;} /* Badge más pequeño */
+            
+            .media-toggle { 
+                bottom: 20px; /* Posición más arriba en móvil */
+                padding: 3px;
+            }
+            .toggle-btn { padding: 6px 12px; font-size: 11px; }
+
+            .controls-overlay { bottom: 20px; right: 20px; }
+            .icon-btn { width: 36px; height: 36px; }
+            .icon-btn .material-icons-round { font-size: 20px; }
+
+
+            .info-wrapper { padding: 25px; } /* Menos padding general */
+            
+            .product-cat { font-size: 12px; }
+            .product-title { font-size: 2rem; line-height: 1.1; } /* Título más pequeño */
+            .header-row { 
+                align-items: center; /* Centrado vertical en móvil */
+                margin-bottom: 5px;
+            }
+            .ar-circle-btn { width: 44px; height: 44px; margin-left: 10px;} /* Botón AR más pequeño */
+            .ar-circle-btn .material-icons-round { font-size: 20px; }
+
+            .product-price { font-size: 1.1rem; margin-top: 5px; margin-bottom: 15px; }
+            
+            .product-desc { display: none; } /* Ocultar descripción en móvil */
+            
+            .size-label { font-size: 0.85rem; margin-bottom: 8px; }
+            .size-grid { 
+                grid-template-columns: repeat(4, 1fr); /* 4 columnas en móvil */
+                margin-bottom: 20px; 
+            }
+            .size-btn { padding: 10px 0; font-size: 0.9rem; }
+            
+            .actions { gap: 10px; margin-top: 15px; } /* Menos espacio y margen para botones */
+            .btn-black { padding: 15px; font-size: 0.9rem; }
+        }
+
+        /* Ajuste para pantallas aún más pequeñas (ej: iPhone SE) */
+        @media (max-width: 480px) {
+            .app-container {
+                grid-template-rows: 45dvh 55dvh; /* Más espacio para la información */
+            }
+            .info-wrapper { padding: 15px; }
+            .product-title { font-size: 1.8rem; }
+            .ar-circle-btn { width: 40px; height: 40px; }
+            .media-toggle { padding: 2px; }
+            .toggle-btn { padding: 5px 10px; font-size: 10px; }
         }
     </style>
 </head>
@@ -282,8 +318,8 @@
 
             <!-- TOGGLE SWITCH (Flotante) -->
             <div class="media-toggle">
-                <button class="toggle-btn active" id="btn-3d" onclick="switchMedia('3d')">3D MODEL</button>
-                <button class="toggle-btn" id="btn-photo" onclick="switchMedia('photo')">PHOTO</button>
+                <button class="toggle-btn active" id="btn-3d" onclick="switchMedia('3d')" data-lang="toggle_3d">3D MODEL</button>
+                <button class="toggle-btn" id="btn-photo" onclick="switchMedia('photo')" data-lang="toggle_photo">PHOTO</button>
             </div>
         </div>
 
@@ -302,7 +338,7 @@
                      <button class="ar-circle-btn" onclick="activateAR()" title="Ver en Realidad Aumentada">
                         <span class="material-icons-round">view_in_ar</span>
                     </button>
-                    <div style="text-align:center; font-size:10px; font-weight:700; margin-top:5px;">AR</div>
+                    <!-- Eliminamos el label de "AR" debajo para ahorrar espacio en móvil, el icono es suficiente -->
                 </div>
             </div>
 
@@ -337,6 +373,7 @@
             const layerPhoto = document.getElementById('layer-photo');
             const btn3d = document.getElementById('btn-3d');
             const btnPhoto = document.getElementById('btn-photo');
+            const controlsOverlay = document.querySelector('.controls-overlay');
 
             if (type === '3d') {
                 layer3d.classList.remove('hidden-layer');
@@ -346,6 +383,7 @@
                 
                 btn3d.classList.add('active');
                 btnPhoto.classList.remove('active');
+                controlsOverlay.style.display = 'flex'; // Mostrar botón 360
             } else {
                 layer3d.classList.remove('active-layer');
                 layer3d.classList.add('hidden-layer');
@@ -354,6 +392,7 @@
 
                 btn3d.classList.remove('active');
                 btnPhoto.classList.add('active');
+                controlsOverlay.style.display = 'none'; // Ocultar botón 360 en modo foto
             }
         }
 
@@ -363,16 +402,20 @@
             es: {
                 badge: "NUEVO",
                 category: "Running / Estilo de vida",
-                desc: "La velocidad se encuentra con el futuro. Diseñadas para el máximo rendimiento con tecnología reactiva.",
+                desc: "La velocidad se encuentra con el futuro. Diseñadas para el máximo rendimiento con tecnología reactiva y un estilo que domina las calles.",
                 size: "Seleccionar Talla (US)",
-                buy_btn: "AÑADIR A LA CESTA"
+                buy_btn: "AÑADIR A LA CESTA",
+                toggle_3d: "MODELO 3D",
+                toggle_photo: "FOTO"
             },
             en: {
                 badge: "NEW RELEASE",
                 category: "Running / Lifestyle",
-                desc: "Speed meets the future. Designed for peak performance with responsive technology.",
+                desc: "Speed meets the future. Designed for peak performance with responsive technology and style that rules the streets.",
                 size: "Select Size (US)",
-                buy_btn: "ADD TO BAG"
+                buy_btn: "ADD TO BAG",
+                toggle_3d: "3D MODEL",
+                toggle_photo: "PHOTO"
             }
         };
 
@@ -403,11 +446,13 @@
             loader.classList.add('hidden');
         });
 
-        // Error silencioso para no dañar la UI
+        // Manejo de error para .glb: muestra la foto si el modelo 3D falla
         viewer.addEventListener('error', (e) => {
-            console.log("Error cargando GLB, intentando mostrar foto por defecto");
-            switchMedia('photo'); // Si falla el 3D, muestra la foto automáticamente
-            document.getElementById('btn-3d').style.display = 'none'; // Ocultar opción 3D
+            console.error("Error loading GLB model:", e);
+            switchMedia('photo'); // Intentar mostrar la foto en caso de error
+            document.getElementById('btn-3d').style.display = 'none'; // Ocultar el botón 3D si falla
+            // También puedes ocultar el loader aquí si quieres
+            loader.classList.add('hidden');
         });
 
         function resetCam() { 
@@ -417,15 +462,16 @@
 
         function activateAR() {
             // Asegurar que estamos en modo 3D antes de lanzar AR
+            // y dar un pequeño delay para que la transición sea visible si veníamos de 'photo'
             switchMedia('3d'); 
             
             setTimeout(() => {
                 if (viewer.canActivateAR) {
                     viewer.activateAR();
                 } else {
-                    alert(currentLang === 'es' ? "Tu dispositivo no soporta AR o faltan servicios." : "Device not supported for AR.");
+                    alert(currentLang === 'es' ? "Tu dispositivo no soporta AR o faltan servicios de Google Play para RA." : "Your device does not support AR or Google Play Services for AR are missing.");
                 }
-            }, 100);
+            }, 100); // Pequeño delay de 100ms
         }
 
         // UI Tallas
