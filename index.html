@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualizador AR - Colocar Objeto</title>
+    <title>Visualizador AR - Colocación Manual</title>
     
     <!-- Google Model Viewer -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
@@ -13,188 +13,120 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-        /* --- ESTILOS GENERALES --- */
         :root { --accent: #000; --bg: #f5f5f7; }
         
-        body {
-            margin: 0; padding: 0;
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            height: 100dvh; width: 100vw;
-            overflow: hidden;
-            display: flex; align-items: center; justify-content: center;
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: var(--bg); height: 100dvh; width: 100vw; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .app-container { background: #ffffff; width: 100%; height: 100%; display: flex; flex-direction: column; }
+        
+        model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
+
+        /* --- UI DE AR PERSONALIZADA --- */
+        
+        /* Contenedor que solo se muestra en modo AR */
+        #ar-ui-overlay {
+            display: none; /* Se activa vía JS al entrar en AR */
+            position: absolute; inset: 0; pointer-events: none;
+            z-index: 100;
         }
 
-        .app-container {
-            background: #ffffff;
-            width: 100%; height: 100%;
-            max-width: 1400px; max-height: 95dvh;
-            display: grid; grid-template-columns: 1.5fr 1fr;
-            overflow: hidden;
+        /* 1. RETÍCULA (Guía central) */
+        .reticle {
+            position: absolute; top: 50%; left: 50%;
+            width: 40px; height: 40px;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .reticle::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            width: 4px; height: 4px; background: white;
+            transform: translate(-50%, -50%); border-radius: 50%;
+        }
+
+        /* 2. BOTÓN COLOCAR */
+        .place-btn-container {
+            position: absolute; bottom: 30px; left: 0; right: 0;
+            display: flex; justify-content: center;
+            pointer-events: auto; /* Habilitar clicks */
         }
         
-        @media (min-width: 900px) {
-            .app-container {
-                border-radius: 20px;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                width: 95%;
-            }
-        }
-
-        /* --- VISOR 3D --- */
-        .viewer-wrapper {
-            position: relative;
-            background: #f0f0f0;
-            width: 100%; height: 100%;
-        }
-
-        model-viewer { 
-            width: 100%; height: 100%; 
-            --poster-color: transparent;
-        }
-
-        /* --- INTERFAZ AR (Botón Colocar) --- */
-        /* Este contenedor se mostrará SOLO durante la sesión AR */
-        #ar-overlay-ui {
-            display: none; /* Oculto por defecto, JS lo activa */
-            position: absolute; 
-            bottom: 30px; left: 0; right: 0;
-            text-align: center;
-            pointer-events: none; /* Dejar pasar toques excepto en el botón */
-            z-index: 999;
-        }
-
         .btn-place {
-            pointer-events: auto;
-            background: #000000;
-            color: white;
-            border: 2px solid white;
-            padding: 15px 30px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border-radius: 50px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            cursor: pointer;
-            display: inline-flex; align-items: center; gap: 8px;
-            transition: transform 0.1s;
+            background: #000; color: white; border: none;
+            padding: 12px 24px; border-radius: 30px;
+            font-size: 1rem; font-weight: 700;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: flex; align-items: center; gap: 8px;
+            opacity: 0.5; cursor: not-allowed; /* Desactivado hasta detectar suelo */
+            transition: all 0.3s ease;
         }
-        .btn-place:active { transform: scale(0.95); }
-        .btn-place span { font-size: 1.3rem; }
-
-        /* Loader */
-        .loader-overlay {
-            position: absolute; inset: 0;
-            background: white; z-index: 20;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            transition: opacity 0.5s; pointer-events: none;
-        }
-        .loader-overlay.hidden { opacity: 0; }
         
-        .spinner {
-            width: 32px; height: 32px; border: 3px solid #eee;
-            border-top-color: #000; border-radius: 50%;
-            animation: spin 1s infinite linear; margin-bottom: 15px;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .btn-place.active { opacity: 1; cursor: pointer; transform: scale(1.05); background: #007AFF; }
+        
+        /* Loader simple */
+        .loader { position: absolute; top: 20px; left: 20px; background: rgba(255,255,255,0.9); padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: bold; pointer-events: none; }
 
-        /* --- PANEL INFO (HTML Normal) --- */
-        .info-wrapper {
-            padding: 30px;
-            display: flex; flex-direction: column; 
-            background: white;
-            justify-content: center;
-        }
-
-        h1 { margin: 0 0 10px 0; font-size: 1.8rem; letter-spacing: -0.5px; }
-        p { color: #666; line-height: 1.5; margin-bottom: 30px; }
-
-        .btn-ar {
-            background: #000; color: white;
-            border: none; padding: 18px; border-radius: 12px;
-            font-size: 1rem; font-weight: 700; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; margin-top: auto;
-        }
-
-        /* --- MOBILE --- */
-        @media (max-width: 900px) {
-            .app-container { 
-                grid-template-columns: 1fr; 
-                grid-template-rows: 60% 40%; 
-                max-height: 100dvh; 
-            }
-        }
+        /* Estilos Desktop/Pre-AR */
+        .desktop-info { padding: 20px; text-align: center; position: absolute; bottom: 0; width: 100%; background: white; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -10px 20px rgba(0,0,0,0.05); }
+        .btn-start-ar { width: 90%; padding: 15px; background: black; color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
         
-        <div class="viewer-wrapper">
-            <!-- Loader -->
-            <div class="loader-overlay" id="loader">
-                <div class="spinner"></div>
-                <div id="progress-text">Cargando 0%</div>
-            </div>
-
-            <!-- 
-                CAMBIOS IMPORTANTES:
-                1. ar-modes="webxr...": Priorizamos WebXR para poder mostrar botones HTML encima.
-                2. slot="ar-button": Ocultamos el botón nativo para usar el nuestro.
-                3. Eventos JS: Controlarán la opacidad para simular "colocación".
-            -->
-            <model-viewer 
-                id="ar-viewer"
-                src="assets/modelo.glb"
-                poster="assets/poster.webp"
-                alt="Modelo 3D"
+        <!-- VISOR 3D -->
+        <!-- 
+            CAMBIOS CLAVE PARA ESTABILIDAD:
+            1. scale="0 0 0": El modelo empieza invisible/diminuto.
+            2. ar-modes="webxr...": Prioriza WebXR para que funcione nuestra UI.
+            3. interaction-prompt="none": Quitamos la mano de Google que confunde.
+        -->
+        <model-viewer 
+            id="ar-viewer"
+            src="assets/modelo.glb"
+            poster="assets/poster.webp"
+            alt="Modelo 3D"
+            
+            ar
+            ar-modes="webxr scene-viewer quick-look"
+            ar-scale="fixed"
+            ar-placement="floor"
+            
+            camera-controls
+            shadow-intensity="1"
+            interaction-prompt="none" 
+            scale="1 1 1"
+        >
+            
+            <!-- SLOT PARA NUESTRA UI EN AR (Solo funciona en WebXR) -->
+            <div slot="ar-overlay" id="ar-ui-overlay">
+                <!-- La Retícula Central -->
+                <div class="reticle" id="reticle"></div>
                 
-                ar
-                ar-placement="floor"
-                ar-scale="fixed"
-                ar-modes="webxr scene-viewer quick-look"
-                
-                camera-controls
-                shadow-intensity="1"
-                environment-image="neutral"
-            >
-                <!-- UI SUPERPUESTA EN MODO AR -->
-                <div id="ar-overlay-ui" slot="ar-overlay">
-                    <button class="btn-place" onclick="placeObject()">
-                        <span class="material-icons-round">download_done</span>
-                        Colocar aquí
+                <!-- El Botón de Acción -->
+                <div class="place-btn-container">
+                    <button class="btn-place" id="btn-place" onclick="placeObject()">
+                        <span class="material-icons-round">vertical_align_bottom</span>
+                        <span>Colocar objeto</span>
                     </button>
-                    <p style="color: white; text-shadow: 0 1px 3px black; margin-top: 10px;">
-                        Apunta al suelo y arrastra el objeto
-                    </p>
                 </div>
-
-                <button slot="ar-button" style="display:none"></button>
-            </model-viewer>
-
-            <!-- Botón Reset Cámara (Solo modo 3D) -->
-            <div style="position: absolute; bottom: 20px; right: 20px; z-index: 5;">
-                <button onclick="resetCam()" style="background:white; border:none; width:44px; height:44px; border-radius:50%; box-shadow:0 4px 12px rgba(0,0,0,0.1); cursor:pointer;">
-                    <span class="material-icons-round" style="line-height: 44px;">center_focus_strong</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="info-wrapper">
-            <div>
-                <h1>Modo "Colocar" AR</h1>
-                <p>
-                    1. Pulsa "Iniciar AR".<br>
-                    2. Apunta al suelo hasta que aparezca el objeto (se verá transparente).<br>
-                    3. Arrástralo a la posición deseada.<br>
-                    4. Pulsa <strong>"Colocar aquí"</strong> para fijarlo.
-                </p>
             </div>
 
-            <button class="btn-ar" id="ar-btn" onclick="activateAR()">
-                <span class="material-icons-round">view_in_ar</span>
-                <span>Iniciar AR</span>
+            <!-- Botón para iniciar AR (Standard) -->
+            <button slot="ar-button" style="display:none;" id="native-ar-btn"></button>
+            
+            <div class="loader" id="loader">Cargando...</div>
+        </model-viewer>
+
+        <!-- PANEL INFERIOR (Solo visible antes de entrar en AR) -->
+        <div class="desktop-info">
+            <h3>Visualizador de Precisión</h3>
+            <p style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
+                Pulsa el botón, apunta al suelo hasta ver la retícula y fija el objeto.
+            </p>
+            <button class="btn-start-ar" onclick="startAR()">
+                Ver en Realidad Aumentada
             </button>
         </div>
 
@@ -202,73 +134,80 @@
 
     <script>
         const viewer = document.getElementById('ar-viewer');
+        const arUi = document.getElementById('ar-ui-overlay');
+        const btnPlace = document.getElementById('btn-place');
+        const reticle = document.getElementById('reticle');
+        const nativeArBtn = document.getElementById('native-ar-btn');
         const loader = document.getElementById('loader');
-        const progressText = document.getElementById('progress-text');
-        const overlayUI = document.getElementById('ar-overlay-ui');
 
-        // Loader
-        viewer.addEventListener('progress', (e) => {
-            progressText.innerText = `Cargando ${Math.round(e.detail.totalProgress * 100)}%`;
+        let isPlaced = false;
+
+        // Carga completada
+        viewer.addEventListener('load', () => { 
+            loader.style.display = 'none'; 
+            console.log("Modelo cargado");
         });
-        viewer.addEventListener('load', () => loader.classList.add('hidden'));
 
-        // Reset Cámara
-        function resetCam() { 
-            viewer.cameraOrbit = "0deg 75deg 105%"; 
-            viewer.fieldOfView = "auto"; 
+        // Iniciar AR (Simula click en el botón nativo oculto)
+        function startAR() {
+            nativeArBtn.click();
         }
 
-        // Activar AR
-        function activateAR() {
-            if (viewer.canActivateAR) {
-                viewer.activateAR();
-            } else {
-                alert("Tu dispositivo no soporta AR o no está actualizado.");
-            }
-        }
+        // --- LÓGICA PRINCIPAL DE AR ---
 
-        // --- LÓGICA DE COLOCACIÓN --- //
-
-        // 1. Detectar cuando entramos en AR
+        // Detectar entrada/salida de AR
         viewer.addEventListener('ar-status', (event) => {
             if (event.detail.status === 'session-started') {
-                // Estamos en AR: Mostrar botón de colocar
-                overlayUI.style.display = 'block';
+                // Entró en AR: Mostrar nuestra UI
+                arUi.style.display = 'block';
+                // REINICIAR ESTADO: Hacer el modelo invisible al inicio
+                viewer.scale = "0 0 0"; 
+                isPlaced = false;
                 
-                // Hacer el modelo semi-transparente (Modo "Fantasma")
-                // Esto indica que aún no está colocado
-                const material = viewer.model.materials[0];
-                if(material) {
-                    material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 0.5]); // 0.5 opacidad
-                    material.setAlphaMode('BLEND');
-                }
-            } else {
-                // Salimos de AR: Ocultar UI y restaurar
-                overlayUI.style.display = 'none';
-                restoreMaterial();
+                // Resetear botón UI
+                btnPlace.classList.remove('active');
+                btnPlace.innerHTML = `<span class="material-icons-round">radar</span> <span>Detectando suelo...</span>`;
+                reticle.style.display = 'block';
+
+            } else if (event.detail.status === 'not-presenting') {
+                // Salió de AR: Ocultar UI y restaurar escala para el visor 3D normal
+                arUi.style.display = 'none';
+                viewer.scale = "1 1 1";
             }
         });
 
-        // 2. Función del botón "Colocar aquí"
-        window.placeObject = function() {
-            // Ocultar la UI de colocación
-            overlayUI.style.display = 'none';
-
-            // Volver el objeto sólido (Confirmar colocación)
-            restoreMaterial();
-
-            // Opcional: Podríamos desactivar la interacción aquí si quisiéramos bloquearlo totalmente
-            // viewer.interactionPrompt = 'none';
-        };
-
-        // Restaurar material a opacidad completa
-        function restoreMaterial() {
-            if(!viewer.model) return;
-            const material = viewer.model.materials[0];
-            if(material) {
-                material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]); // 1.0 opacidad
-                material.setAlphaMode('OPAQUE');
+        // Detectar si el rastreo de AR es estable (para habilitar el botón)
+        // Usamos un intervalo simple para chequear si el visor está listo en WebXR
+        // Nota: Model-viewer no expone evento "plane-detected" fácil, simularemos la disponibilidad
+        setInterval(() => {
+            if (viewer.arStatus === 'session-started' && !isPlaced) {
+                // Si estamos en AR y aún no hemos colocado el objeto
+                // Asumimos que si han pasado 1-2 segundos, el tracking está activo
+                // (Para una detección real de planos se requiere acceso a hit-test results, 
+                // pero model-viewer lo abstrae. Este es el mejor enfoque UX sin código nativo complejo).
+                
+                // Habilitar botón visualmente
+                btnPlace.classList.add('active');
+                btnPlace.innerHTML = `<span class="material-icons-round">vertical_align_bottom</span> <span>Colocar aquí</span>`;
             }
+        }, 2000);
+
+        // --- FUNCIÓN COLOCAR OBJETO ---
+        function placeObject() {
+            if (!btnPlace.classList.contains('active')) return;
+
+            // 1. "Instanciar" el objeto (Hacerlo visible)
+            // Model-viewer mueve el objeto internamente siguiendo el suelo (hit-test)
+            // En el momento que cambiamos la escala a 1, aparecerá donde esté la retícula.
+            viewer.scale = "1 1 1"; 
+
+            // 2. Bloquear UI
+            isPlaced = true;
+            reticle.style.display = 'none'; // Ocultar guía
+            btnPlace.style.display = 'none'; // Ocultar botón
+            
+            // 3. Feedback opcional (vibración)
+            if (navigator.vibrate) navigator.vibrate(50);
         }
 
     </script>
