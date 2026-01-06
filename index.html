@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualización AR Estable</title>
+    <title>Visualizador AR - Android Fix</title>
     
     <!-- Google Model Viewer -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     
-    <!-- Iconos y Fuentes -->
+    <!-- Fuentes e Iconos -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-        /* --- ESTILOS OPTIMIZADOS --- */
+        /* --- ESTILOS DE ESTRUCTURA --- */
         :root { --accent: #000; --bg: #f5f5f7; }
         
         body {
             margin: 0; padding: 0;
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
-            /* USAMOS 100dvh PARA EVITAR SALTOS EN MÓVIL */
+            /* Altura dinámica para móviles */
             height: 100dvh; width: 100vw;
             overflow: hidden;
             display: flex; align-items: center; justify-content: center;
@@ -29,14 +29,15 @@
         .app-container {
             background: #ffffff;
             width: 100%; height: 100%;
-            /* En escritorio limitamos el ancho, en móvil ocupa todo */
+            /* Ajuste Desktop */
             max-width: 1400px; max-height: 95dvh;
             display: grid; grid-template-columns: 1.5fr 1fr;
+            /* Ajuste Mobile por defecto */
             border-radius: 0;
-            box-shadow: none;
             overflow: hidden;
         }
         
+        /* Solo redondeamos bordes en pantallas grandes */
         @media (min-width: 900px) {
             .app-container {
                 border-radius: 20px;
@@ -45,7 +46,7 @@
             }
         }
 
-        /* Área 3D */
+        /* --- VISOR 3D --- */
         .viewer-wrapper {
             position: relative;
             background: #f0f0f0;
@@ -57,10 +58,10 @@
             --poster-color: transparent;
         }
 
-        /* Loader Real */
+        /* Loader */
         .loader-overlay {
             position: absolute; inset: 0;
-            background: white; z-index: 10;
+            background: white; z-index: 20;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             transition: opacity 0.5s; pointer-events: none;
@@ -68,13 +69,17 @@
         .loader-overlay.hidden { opacity: 0; }
         
         .spinner {
-            width: 30px; height: 30px; border: 3px solid #eee;
+            width: 32px; height: 32px; border: 3px solid #eee;
             border-top-color: #000; border-radius: 50%;
-            animation: spin 1s infinite linear; margin-bottom: 10px;
+            animation: spin 1s infinite linear; margin-bottom: 15px;
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .error-message {
+            display: none; color: red; margin-top: 10px; font-weight: bold; text-align: center;
+        }
 
-        /* Controles UI */
+        /* Botón Reset Cámara */
         .controls-overlay {
             position: absolute; bottom: 20px; right: 20px; z-index: 5;
         }
@@ -84,35 +89,38 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer;
         }
 
-        /* Panel Info */
+        /* --- PANEL INFO --- */
         .info-wrapper {
-            padding: 40px;
-            display: flex; flex-direction: column; justify-content: center;
+            padding: 30px;
+            display: flex; flex-direction: column; 
             background: white;
+            justify-content: center;
         }
 
-        h1 { margin: 0 0 10px 0; font-size: 2rem; letter-spacing: -0.5px; }
-        p { color: #666; line-height: 1.6; margin-bottom: 30px; }
+        h1 { margin: 0 0 10px 0; font-size: 1.8rem; letter-spacing: -0.5px; }
+        p { color: #666; line-height: 1.5; margin-bottom: 30px; }
 
         .btn-ar {
             background: #000; color: white;
-            border: none; padding: 16px; border-radius: 12px;
+            border: none; padding: 18px; border-radius: 12px;
             font-size: 1rem; font-weight: 700; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 10px;
             width: 100%; margin-top: auto;
+            transition: transform 0.1s;
         }
-        .btn-ar:active { transform: scale(0.98); }
+        .btn-ar:active { transform: scale(0.96); }
 
-        /* Responsive */
+        /* --- MOBILE LAYOUT --- */
         @media (max-width: 900px) {
             .app-container { 
-                grid-template-columns: 1fr; grid-template-rows: 65% 35%; 
+                grid-template-columns: 1fr; 
+                grid-template-rows: 60% 40%; /* Más espacio al visor */
                 max-height: 100dvh; 
             }
-            .info-wrapper { padding: 24px; }
-            h1 { font-size: 1.5rem; }
+            .info-wrapper { padding: 20px; }
+            h1 { font-size: 1.4rem; }
             p { font-size: 0.9rem; margin-bottom: 15px; }
-            .btn-ar { padding: 14px; }
+            .btn-ar { padding: 15px; }
         }
     </style>
 </head>
@@ -124,14 +132,15 @@
             <!-- Loader -->
             <div class="loader-overlay" id="loader">
                 <div class="spinner"></div>
-                <div id="progress-text">0%</div>
+                <div id="progress-text">Cargando 0%</div>
+                <div class="error-message" id="error-text">Error al cargar modelo</div>
             </div>
 
             <!-- 
-                CORRECCIONES DE ESTABILIDAD APLICADAS:
-                1. ar-scale="auto": Vital para evitar el deslizamiento si la escala del archivo no es 1:1.
-                2. ar-modes="scene-viewer...": Scene Viewer (Android Nativo) es más estable que WebXR.
-                3. shadow-intensity="1": Ayuda al sensor a anclar el objeto visualmente.
+                CONFIGURACIÓN ANDROID VISIBILIDAD 
+                1. ar-modes="webxr...": Prioridad al navegador (más compatible).
+                2. ar-scale="fixed": Evita que el objeto se haga microscópico.
+                3. environment-image: Asegura luz por si el modelo es oscuro.
             -->
             <model-viewer 
                 id="ar-viewer"
@@ -141,20 +150,19 @@
                 
                 ar
                 ar-placement="floor"
-                ar-modes="scene-viewer webxr quick-look"
-                ar-scale="auto"
+                ar-modes="webxr scene-viewer quick-look"
+                ar-scale="fixed"
                 
                 camera-controls
                 shadow-intensity="1"
-                shadow-softness="0.5"
-                exposure="1"
                 environment-image="neutral"
+                exposure="1"
             >
                 <button slot="ar-button" style="display:none"></button>
             </model-viewer>
 
             <div class="controls-overlay">
-                <button class="icon-btn" onclick="resetCam()" aria-label="Resetear vista">
+                <button class="icon-btn" onclick="resetCam()" title="Resetear Vista">
                     <span class="material-icons-round">center_focus_strong</span>
                 </button>
             </div>
@@ -162,16 +170,15 @@
 
         <div class="info-wrapper">
             <div>
-                <h1>Producto AR</h1>
+                <h1>Prueba AR (Android Fix)</h1>
                 <p>
-                    Para una mejor experiencia:<br>
-                    • Apunta al suelo en una zona bien iluminada.<br>
-                    • Evita suelos blancos lisos o reflectantes.<br>
-                    • Si el objeto se ve muy grande o pequeño, pellizca la pantalla para ajustar.
+                    <strong>Si no ves el modelo:</strong><br>
+                    1. Mira hacia arriba/abajo (puede estar flotando).<br>
+                    2. Aléjate o acércate (puede ser gigante/diminuto).
                 </p>
             </div>
 
-            <button class="btn-ar" onclick="activateAR()">
+            <button class="btn-ar" id="ar-btn" onclick="activateAR()">
                 <span class="material-icons-round">view_in_ar</span>
                 <span>Ver en mi espacio</span>
             </button>
@@ -183,16 +190,31 @@
         const viewer = document.getElementById('ar-viewer');
         const loader = document.getElementById('loader');
         const progressText = document.getElementById('progress-text');
+        const errorText = document.getElementById('error-text');
+        const arBtn = document.getElementById('ar-btn');
 
-        // Loader con porcentaje real
+        // Mostrar progreso real
         viewer.addEventListener('progress', (e) => {
             const percent = Math.round(e.detail.totalProgress * 100);
-            progressText.innerText = `${percent}%`;
+            progressText.innerText = `Cargando ${percent}%`;
         });
 
-        // Ocultar loader cuando carga
+        // Carga completada
         viewer.addEventListener('load', () => {
             loader.classList.add('hidden');
+        });
+
+        // Manejo de error si el archivo falla
+        viewer.addEventListener('error', (e) => {
+            console.error(e);
+            loader.classList.remove('hidden'); // Mostrar loader de nuevo pero con error
+            document.querySelector('.spinner').style.display = 'none';
+            progressText.style.display = 'none';
+            errorText.style.display = 'block';
+            errorText.innerText = "Error: Verifica que 'assets/modelo.glb' existe.";
+            arBtn.disabled = true;
+            arBtn.style.opacity = "0.5";
+            arBtn.innerText = "No disponible";
         });
 
         // Resetear cámara
@@ -206,7 +228,7 @@
             if (viewer.canActivateAR) {
                 viewer.activateAR();
             } else {
-                alert("Para ver en AR, abre esta página en un móvil (Chrome/Safari).");
+                alert("Error: Tu móvil no soporta AR o no tienes Google Play Services for AR actualizado.");
             }
         }
     </script>
