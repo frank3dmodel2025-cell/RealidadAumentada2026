@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualizador AR - Android Fix</title>
+    <title>Visualizador AR - Colocar Objeto</title>
     
     <!-- Google Model Viewer -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
@@ -13,14 +13,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-        /* --- ESTILOS DE ESTRUCTURA --- */
+        /* --- ESTILOS GENERALES --- */
         :root { --accent: #000; --bg: #f5f5f7; }
         
         body {
             margin: 0; padding: 0;
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
-            /* Altura dinámica para móviles */
             height: 100dvh; width: 100vw;
             overflow: hidden;
             display: flex; align-items: center; justify-content: center;
@@ -29,15 +28,11 @@
         .app-container {
             background: #ffffff;
             width: 100%; height: 100%;
-            /* Ajuste Desktop */
             max-width: 1400px; max-height: 95dvh;
             display: grid; grid-template-columns: 1.5fr 1fr;
-            /* Ajuste Mobile por defecto */
-            border-radius: 0;
             overflow: hidden;
         }
         
-        /* Solo redondeamos bordes en pantallas grandes */
         @media (min-width: 900px) {
             .app-container {
                 border-radius: 20px;
@@ -58,6 +53,34 @@
             --poster-color: transparent;
         }
 
+        /* --- INTERFAZ AR (Botón Colocar) --- */
+        /* Este contenedor se mostrará SOLO durante la sesión AR */
+        #ar-overlay-ui {
+            display: none; /* Oculto por defecto, JS lo activa */
+            position: absolute; 
+            bottom: 30px; left: 0; right: 0;
+            text-align: center;
+            pointer-events: none; /* Dejar pasar toques excepto en el botón */
+            z-index: 999;
+        }
+
+        .btn-place {
+            pointer-events: auto;
+            background: #000000;
+            color: white;
+            border: 2px solid white;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            transition: transform 0.1s;
+        }
+        .btn-place:active { transform: scale(0.95); }
+        .btn-place span { font-size: 1.3rem; }
+
         /* Loader */
         .loader-overlay {
             position: absolute; inset: 0;
@@ -74,22 +97,8 @@
             animation: spin 1s infinite linear; margin-bottom: 15px;
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        .error-message {
-            display: none; color: red; margin-top: 10px; font-weight: bold; text-align: center;
-        }
 
-        /* Botón Reset Cámara */
-        .controls-overlay {
-            position: absolute; bottom: 20px; right: 20px; z-index: 5;
-        }
-        .icon-btn {
-            background: white; border: none; width: 44px; height: 44px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer;
-        }
-
-        /* --- PANEL INFO --- */
+        /* --- PANEL INFO (HTML Normal) --- */
         .info-wrapper {
             padding: 30px;
             display: flex; flex-direction: column; 
@@ -106,21 +115,15 @@
             font-size: 1rem; font-weight: 700; cursor: pointer;
             display: flex; align-items: center; justify-content: center; gap: 10px;
             width: 100%; margin-top: auto;
-            transition: transform 0.1s;
         }
-        .btn-ar:active { transform: scale(0.96); }
 
-        /* --- MOBILE LAYOUT --- */
+        /* --- MOBILE --- */
         @media (max-width: 900px) {
             .app-container { 
                 grid-template-columns: 1fr; 
-                grid-template-rows: 60% 40%; /* Más espacio al visor */
+                grid-template-rows: 60% 40%; 
                 max-height: 100dvh; 
             }
-            .info-wrapper { padding: 20px; }
-            h1 { font-size: 1.4rem; }
-            p { font-size: 0.9rem; margin-bottom: 15px; }
-            .btn-ar { padding: 15px; }
         }
     </style>
 </head>
@@ -133,14 +136,13 @@
             <div class="loader-overlay" id="loader">
                 <div class="spinner"></div>
                 <div id="progress-text">Cargando 0%</div>
-                <div class="error-message" id="error-text">Error al cargar modelo</div>
             </div>
 
             <!-- 
-                CONFIGURACIÓN ANDROID VISIBILIDAD 
-                1. ar-modes="webxr...": Prioridad al navegador (más compatible).
-                2. ar-scale="fixed": Evita que el objeto se haga microscópico.
-                3. environment-image: Asegura luz por si el modelo es oscuro.
+                CAMBIOS IMPORTANTES:
+                1. ar-modes="webxr...": Priorizamos WebXR para poder mostrar botones HTML encima.
+                2. slot="ar-button": Ocultamos el botón nativo para usar el nuestro.
+                3. Eventos JS: Controlarán la opacidad para simular "colocación".
             -->
             <model-viewer 
                 id="ar-viewer"
@@ -150,37 +152,49 @@
                 
                 ar
                 ar-placement="floor"
-                ar-modes="webxr scene-viewer quick-look"
                 ar-scale="fixed"
+                ar-modes="webxr scene-viewer quick-look"
                 
                 camera-controls
                 shadow-intensity="1"
                 environment-image="neutral"
-                exposure="1"
             >
+                <!-- UI SUPERPUESTA EN MODO AR -->
+                <div id="ar-overlay-ui" slot="ar-overlay">
+                    <button class="btn-place" onclick="placeObject()">
+                        <span class="material-icons-round">download_done</span>
+                        Colocar aquí
+                    </button>
+                    <p style="color: white; text-shadow: 0 1px 3px black; margin-top: 10px;">
+                        Apunta al suelo y arrastra el objeto
+                    </p>
+                </div>
+
                 <button slot="ar-button" style="display:none"></button>
             </model-viewer>
 
-            <div class="controls-overlay">
-                <button class="icon-btn" onclick="resetCam()" title="Resetear Vista">
-                    <span class="material-icons-round">center_focus_strong</span>
+            <!-- Botón Reset Cámara (Solo modo 3D) -->
+            <div style="position: absolute; bottom: 20px; right: 20px; z-index: 5;">
+                <button onclick="resetCam()" style="background:white; border:none; width:44px; height:44px; border-radius:50%; box-shadow:0 4px 12px rgba(0,0,0,0.1); cursor:pointer;">
+                    <span class="material-icons-round" style="line-height: 44px;">center_focus_strong</span>
                 </button>
             </div>
         </div>
 
         <div class="info-wrapper">
             <div>
-                <h1>Prueba AR (Android Fix)</h1>
+                <h1>Modo "Colocar" AR</h1>
                 <p>
-                    <strong>Si no ves el modelo:</strong><br>
-                    1. Mira hacia arriba/abajo (puede estar flotando).<br>
-                    2. Aléjate o acércate (puede ser gigante/diminuto).
+                    1. Pulsa "Iniciar AR".<br>
+                    2. Apunta al suelo hasta que aparezca el objeto (se verá transparente).<br>
+                    3. Arrástralo a la posición deseada.<br>
+                    4. Pulsa <strong>"Colocar aquí"</strong> para fijarlo.
                 </p>
             </div>
 
             <button class="btn-ar" id="ar-btn" onclick="activateAR()">
                 <span class="material-icons-round">view_in_ar</span>
-                <span>Ver en mi espacio</span>
+                <span>Iniciar AR</span>
             </button>
         </div>
 
@@ -190,34 +204,15 @@
         const viewer = document.getElementById('ar-viewer');
         const loader = document.getElementById('loader');
         const progressText = document.getElementById('progress-text');
-        const errorText = document.getElementById('error-text');
-        const arBtn = document.getElementById('ar-btn');
+        const overlayUI = document.getElementById('ar-overlay-ui');
 
-        // Mostrar progreso real
+        // Loader
         viewer.addEventListener('progress', (e) => {
-            const percent = Math.round(e.detail.totalProgress * 100);
-            progressText.innerText = `Cargando ${percent}%`;
+            progressText.innerText = `Cargando ${Math.round(e.detail.totalProgress * 100)}%`;
         });
+        viewer.addEventListener('load', () => loader.classList.add('hidden'));
 
-        // Carga completada
-        viewer.addEventListener('load', () => {
-            loader.classList.add('hidden');
-        });
-
-        // Manejo de error si el archivo falla
-        viewer.addEventListener('error', (e) => {
-            console.error(e);
-            loader.classList.remove('hidden'); // Mostrar loader de nuevo pero con error
-            document.querySelector('.spinner').style.display = 'none';
-            progressText.style.display = 'none';
-            errorText.style.display = 'block';
-            errorText.innerText = "Error: Verifica que 'assets/modelo.glb' existe.";
-            arBtn.disabled = true;
-            arBtn.style.opacity = "0.5";
-            arBtn.innerText = "No disponible";
-        });
-
-        // Resetear cámara
+        // Reset Cámara
         function resetCam() { 
             viewer.cameraOrbit = "0deg 75deg 105%"; 
             viewer.fieldOfView = "auto"; 
@@ -228,9 +223,54 @@
             if (viewer.canActivateAR) {
                 viewer.activateAR();
             } else {
-                alert("Error: Tu móvil no soporta AR o no tienes Google Play Services for AR actualizado.");
+                alert("Tu dispositivo no soporta AR o no está actualizado.");
             }
         }
+
+        // --- LÓGICA DE COLOCACIÓN --- //
+
+        // 1. Detectar cuando entramos en AR
+        viewer.addEventListener('ar-status', (event) => {
+            if (event.detail.status === 'session-started') {
+                // Estamos en AR: Mostrar botón de colocar
+                overlayUI.style.display = 'block';
+                
+                // Hacer el modelo semi-transparente (Modo "Fantasma")
+                // Esto indica que aún no está colocado
+                const material = viewer.model.materials[0];
+                if(material) {
+                    material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 0.5]); // 0.5 opacidad
+                    material.setAlphaMode('BLEND');
+                }
+            } else {
+                // Salimos de AR: Ocultar UI y restaurar
+                overlayUI.style.display = 'none';
+                restoreMaterial();
+            }
+        });
+
+        // 2. Función del botón "Colocar aquí"
+        window.placeObject = function() {
+            // Ocultar la UI de colocación
+            overlayUI.style.display = 'none';
+
+            // Volver el objeto sólido (Confirmar colocación)
+            restoreMaterial();
+
+            // Opcional: Podríamos desactivar la interacción aquí si quisiéramos bloquearlo totalmente
+            // viewer.interactionPrompt = 'none';
+        };
+
+        // Restaurar material a opacidad completa
+        function restoreMaterial() {
+            if(!viewer.model) return;
+            const material = viewer.model.materials[0];
+            if(material) {
+                material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]); // 1.0 opacidad
+                material.setAlphaMode('OPAQUE');
+            }
+        }
+
     </script>
 </body>
 </html>
