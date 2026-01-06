@@ -2,98 +2,294 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test AR Simple</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Visualizador AR - Tap to Place</title>
     
-    <!-- Model Viewer -->
+    <!-- Google Model Viewer 3.4.0 -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     
+    <!-- Fuentes e Iconos -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
-        body { margin: 0; height: 100vh; background-color: #f0f0f0; font-family: sans-serif; }
+        /* --- ESTILOS GENERALES --- */
+        :root { --accent: #000; --bg: #f5f5f7; }
         
-        #card {
-            margin: 0 auto;
-            display: flex; flex-direction: column;
-            height: 100%; max-width: 600px;
-            background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            height: 100dvh; width: 100vw;
+            overflow: hidden; /* Evita scroll elástico en iOS */
+            display: flex; align-items: center; justify-content: center;
         }
 
-        /* El visor debe tener altura definida */
-        model-viewer {
-            width: 100%;
-            height: 80%; /* Ocupa el 80% de la pantalla */
-            background-color: #eee;
-            --poster-color: #eee;
+        .app-container {
+            background: #ffffff;
+            width: 100%; height: 100%;
+            max-width: 1400px; max-height: 95dvh;
+            display: grid; grid-template-columns: 1.5fr 1fr;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        @media (min-width: 900px) {
+            .app-container {
+                border-radius: 20px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                width: 95%;
+            }
         }
 
-        .controls {
-            height: 20%;
+        /* --- VISOR 3D --- */
+        .viewer-wrapper {
+            position: relative;
+            background: #f0f0f0;
+            width: 100%; height: 100%;
+        }
+
+        model-viewer { 
+            width: 100%; height: 100%; 
+            --poster-color: transparent;
+            /* Evita que el usuario mueva la página al rotar el modelo */
+            touch-action: pan-y; 
+        }
+
+        /* Loader */
+        .loader-overlay {
+            position: absolute; inset: 0;
+            background: white; z-index: 20;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            padding: 10px;
+            transition: opacity 0.5s; pointer-events: none;
+        }
+        .loader-overlay.hidden { opacity: 0; }
+        
+        .spinner {
+            width: 32px; height: 32px; border: 3px solid #eee;
+            border-top-color: #000; border-radius: 50%;
+            animation: spin 1s infinite linear; margin-bottom: 15px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .error-message {
+            display: none; color: #d32f2f; margin-top: 10px; font-weight: bold; text-align: center; font-size: 0.9rem; padding: 0 20px;
         }
 
-        /* Botón AR personalizado */
-        .ar-button {
-            background-color: #000; color: white;
-            border: none; border-radius: 30px;
-            padding: 15px 30px; font-size: 16px; font-weight: bold;
-            cursor: pointer;
-            display: block;
+        /* Botón Reset Cámara (Solo visible en modo 3D, no en AR) */
+        .controls-overlay {
+            position: absolute; bottom: 20px; right: 20px; z-index: 5;
+        }
+        .icon-btn {
+            background: white; border: none; width: 44px; height: 44px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s;
+        }
+        .icon-btn:active { transform: scale(0.9); }
+
+        /* --- SLOT AR: Instrucciones visuales --- */
+        /* Mensaje personalizado que aparece CUANDO entras en AR */
+        #ar-prompt {
+            position: absolute; left: 50%; bottom: 60px;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); color: white;
+            padding: 10px 20px; border-radius: 20px;
+            font-size: 14px; pointer-events: none;
+            display: none; z-index: 999;
+            text-align: center; width: max-content;
+        }
+
+        /* --- PANEL INFO --- */
+        .info-wrapper {
+            padding: 40px;
+            display: flex; flex-direction: column; 
+            background: white;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        h1 { margin: 0 0 15px 0; font-size: 1.8rem; letter-spacing: -0.5px; color: #111; }
+        p { color: #666; line-height: 1.6; margin-bottom: 30px; font-size: 1rem; }
+        
+        .instruction-list {
+            background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 30px;
+        }
+        .instruction-list small {
+            display: block; margin-bottom: 8px; color: #333; font-weight: 600;
+        }
+
+        .btn-ar {
+            background: #000; color: white;
+            border: none; padding: 18px; border-radius: 12px;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; margin-top: auto;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+        }
+        .btn-ar:active { transform: scale(0.96); }
+        .btn-ar:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+
+        /* --- MOBILE LAYOUT --- */
+        @media (max-width: 900px) {
+            .app-container { 
+                grid-template-columns: 1fr; 
+                grid-template-rows: 1fr auto; 
+                height: 100dvh; max-height: 100dvh;
+                border-radius: 0;
+            }
+            .viewer-wrapper { height: 100%; }
+            .info-wrapper { 
+                padding: 20px 20px 30px 20px; 
+                border-top-left-radius: 20px; border-top-right-radius: 20px;
+                box-shadow: 0 -10px 20px rgba(0,0,0,0.05);
+                position: relative; margin-top: -20px; /* Solapar un poco */
+            }
+            h1 { font-size: 1.4rem; margin-bottom: 10px; }
+            p { font-size: 0.9rem; margin-bottom: 15px; display: none; } /* Ocultar texto largo en móvil */
+            .instruction-list { display: none; } /* Ocultar instrucciones en móvil para limpiar UI */
+            .btn-ar { padding: 16px; }
         }
     </style>
 </head>
 <body>
 
-    <div id="card">
-        <!-- 
-            USANDO MODELO ONLINE DE GOOGLE PARA DESCARTAR ERRORES LOCALES 
-            src: Astronauta de prueba
-        -->
-        <model-viewer 
-            id="visor"
-            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
-            alt="Astronauta Test"
-            
-            ar
-            ar-modes="scene-viewer webxr quick-look"
-            ar-placement="floor"
-            ar-scale="fixed"
-            
-            camera-controls
-            auto-rotate
-            shadow-intensity="1"
-        >
-            <!-- Botón AR Nativo (personalizado) -->
-            <button slot="ar-button" class="ar-button">
-                👋 Activar AR (Tap to Place)
-            </button>
-        </model-viewer>
+    <div class="app-container">
+        
+        <div class="viewer-wrapper">
+            <!-- Loader -->
+            <div class="loader-overlay" id="loader">
+                <div class="spinner"></div>
+                <div id="progress-text">Cargando 0%</div>
+                <div class="error-message" id="error-text"></div>
+            </div>
 
-        <div class="controls">
-            <p><strong>Prueba de Diagnóstico</strong></p>
-            <p id="status">Cargando modelo...</p>
+            <!-- 
+                OPTIMIZACIÓN TAP-TO-PLACE Y ANCLAJE FIRME:
+                1. ar-modes="webxr scene-viewer quick-look": 
+                   'webxr' da la mejor experiencia de retículo (círculo en el suelo) antes de colocar.
+                   'scene-viewer' es el nativo de Android (puntos en el suelo -> tap).
+                2. ar-placement="floor": Obligatorio para detectar planos horizontales.
+                3. disable-pan: CRUCIAL. Permite rotar el objeto con un dedo, pero IMPIDE arrastrarlo
+                   (deslizarlo) una vez colocado. Esto evita el "drifting" accidental.
+                4. shadow-intensity="2": Sombra fuerte para "pegar" visualmente el objeto al suelo.
+                5. ar-scale="fixed": Mantiene la escala 1:1 real del GLB.
+            -->
+            <model-viewer 
+                id="ar-viewer"
+                src="assets/modelo.glb"
+                poster="assets/poster.webp"
+                alt="Modelo 3D"
+                
+                ar
+                ar-placement="floor"
+                ar-modes="webxr scene-viewer quick-look"
+                ar-scale="fixed"
+                
+                camera-controls
+                disable-pan
+                shadow-intensity="2"
+                shadow-softness="0.5"
+                environment-image="neutral"
+                exposure="1"
+            >
+                <!-- Botón AR nativo oculto para usar nuestro botón personalizado -->
+                <button slot="ar-button" style="display:none"></button>
+                
+                <!-- Prompt visual dentro de AR (solo funciona en WebXR mode) -->
+                <div id="ar-prompt" slot="ar-prompt">
+                    Apunta al suelo y toca para colocar
+                </div>
+            </model-viewer>
+
+            <!-- Reset cámara (solo para vista 3D) -->
+            <div class="controls-overlay">
+                <button class="icon-btn" onclick="resetCam()" title="Resetear Vista">
+                    <span class="material-icons-round">center_focus_strong</span>
+                </button>
+            </div>
         </div>
+
+        <div class="info-wrapper">
+            <div>
+                <h1>Visualizador AR</h1>
+                <p>
+                    Visualiza el modelo a escala real en tu entorno. Asegúrate de estar en un área iluminada.
+                </p>
+                
+                <div class="instruction-list">
+                    <small>Cómo funciona:</small>
+                    1. Pulsa el botón inferior.<br>
+                    2. Apunta la cámara al suelo y muévela suavemente.<br>
+                    3. Cuando veas el indicador, toca la pantalla para anclar.
+                </div>
+            </div>
+
+            <button class="btn-ar" id="ar-btn" onclick="activateAR()">
+                <span class="material-icons-round">view_in_ar</span>
+                <span>Ver en mi espacio (AR)</span>
+            </button>
+        </div>
+
     </div>
 
     <script>
-        const viewer = document.getElementById('visor');
-        const status = document.getElementById('status');
+        const viewer = document.getElementById('ar-viewer');
+        const loader = document.getElementById('loader');
+        const progressText = document.getElementById('progress-text');
+        const errorText = document.getElementById('error-text');
+        const arBtn = document.getElementById('ar-btn');
 
-        // Verificar si carga
+        // Monitor de progreso de carga
+        viewer.addEventListener('progress', (e) => {
+            const percent = Math.round(e.detail.totalProgress * 100);
+            progressText.innerText = `Cargando ${percent}%`;
+        });
+
+        // Carga exitosa
         viewer.addEventListener('load', () => {
-            status.innerText = "✅ Modelo cargado (Si no lo ves, rota la cámara)";
-            status.style.color = "green";
+            loader.classList.add('hidden');
+            console.log("Modelo cargado correctamente");
         });
 
-        // Verificar errores
+        // Manejo de errores
         viewer.addEventListener('error', (e) => {
-            console.error(e);
-            status.innerHTML = "❌ ERROR: No se pudo cargar el modelo.<br>Revisa tu conexión a internet.";
-            status.style.color = "red";
+            console.error("Error cargando modelo:", e);
+            loader.classList.remove('hidden');
+            document.querySelector('.spinner').style.display = 'none';
+            progressText.style.display = 'none';
+            errorText.style.display = 'block';
+            errorText.innerText = "No se pudo cargar 'assets/modelo.glb'. Verifica la ruta.";
+            
+            arBtn.disabled = true;
+            arBtn.style.opacity = "0.6";
+            arBtn.innerHTML = "<span class='material-icons-round'>error</span><span>Error de carga</span>";
         });
-    </script>
 
+        // Resetear cámara a la posición inicial
+        function resetCam() { 
+            viewer.cameraOrbit = "0deg 75deg 105%"; 
+            viewer.fieldOfView = "auto"; 
+            viewer.jumpCameraToGoal();
+        }
+
+        // Activar AR manualmente
+        function activateAR() {
+            if (viewer.canActivateAR) {
+                viewer.activateAR();
+            } else {
+                // Fallback básico si no soporta AR
+                alert("Tu dispositivo no parece soportar AR o necesita actualización de Google Play Services for AR.");
+            }
+        }
+        
+        // Estabilidad adicional para iOS (Quick Look)
+        // Quick Look coloca el objeto automáticamente, pero esto asegura que no rote al inicio
+        viewer.addEventListener('quick-look-button-tapped', () => {
+             console.log("Iniciando Quick Look en iOS...");
+        });
+
+    </script>
 </body>
 </html>
