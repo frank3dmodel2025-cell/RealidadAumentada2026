@@ -2,199 +2,213 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- user-scalable=no es agresivo, pero aceptable en Apps 3D -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualización Pro 3D</title>
+    <title>Visualización AR Estable</title>
     
-    <!-- Scripts -->
+    <!-- Google Model Viewer -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    
+    <!-- Iconos y Fuentes -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <!-- Fuente Inter (Más moderna que Manrope para UI técnica) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
-        :root { --accent: #000; --bg: #f4f4f4; }
+        /* --- ESTILOS OPTIMIZADOS --- */
+        :root { --accent: #000; --bg: #f5f5f7; }
+        
         body {
-            margin: 0; 
+            margin: 0; padding: 0;
             font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            /* CORRECCIÓN: dvh evita saltos en móvil */
-            height: 100dvh; 
-            overflow: hidden; /* Evita scroll en el body principal */
-            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg);
+            /* USAMOS 100dvh PARA EVITAR SALTOS EN MÓVIL */
+            height: 100dvh; width: 100vw;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        .app-grid {
-            width: 100%; height: 100%; max-width: 1400px;
-            background: #fff;
-            display: grid; 
-            grid-template-columns: 1.5fr 1fr;
-            /* En escritorio dejamos un margen, en móvil no */
-            height: 95dvh; max-height: 900px;
-            border-radius: 20px; overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        .app-container {
+            background: #ffffff;
+            width: 100%; height: 100%;
+            /* En escritorio limitamos el ancho, en móvil ocupa todo */
+            max-width: 1400px; max-height: 95dvh;
+            display: grid; grid-template-columns: 1.5fr 1fr;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: hidden;
+        }
+        
+        @media (min-width: 900px) {
+            .app-container {
+                border-radius: 20px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                width: 95%;
+            }
         }
 
-        /* Viewer Area */
-        .viewer-container {
-            position: relative; background: #f0f0f0;
+        /* Área 3D */
+        .viewer-wrapper {
+            position: relative;
+            background: #f0f0f0;
             width: 100%; height: 100%;
         }
-        model-viewer { width: 100%; height: 100%; }
+
+        model-viewer { 
+            width: 100%; height: 100%; 
+            --poster-color: transparent;
+        }
 
         /* Loader Real */
-        .loader {
+        .loader-overlay {
             position: absolute; inset: 0;
-            background: #fff; z-index: 10;
-            display: flex; flex-direction: column; 
+            background: white; z-index: 10;
+            display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            transition: opacity 0.5s ease;
-            pointer-events: none;
+            transition: opacity 0.5s; pointer-events: none;
         }
-        .loader.hide { opacity: 0; }
+        .loader-overlay.hidden { opacity: 0; }
         
         .spinner {
-            width: 40px; height: 40px; border: 4px solid #ddd;
+            width: 30px; height: 30px; border: 3px solid #eee;
             border-top-color: #000; border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 15px;
+            animation: spin 1s infinite linear; margin-bottom: 10px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        .progress-text { font-weight: 600; color: #666; font-size: 0.9rem; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* Error Message */
-        .error-msg {
-            display: none; position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255,0,0,0.1); color: #d00;
-            padding: 20px; border-radius: 8px; text-align: center;
+        /* Controles UI */
+        .controls-overlay {
+            position: absolute; bottom: 20px; right: 20px; z-index: 5;
+        }
+        .icon-btn {
+            background: white; border: none; width: 44px; height: 44px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer;
         }
 
         /* Panel Info */
-        .info-panel {
-            padding: 40px; overflow-y: auto; display: flex; flex-direction: column;
+        .info-wrapper {
+            padding: 40px;
+            display: flex; flex-direction: column; justify-content: center;
+            background: white;
         }
+
+        h1 { margin: 0 0 10px 0; font-size: 2rem; letter-spacing: -0.5px; }
+        p { color: #666; line-height: 1.6; margin-bottom: 30px; }
+
         .btn-ar {
-            margin-top: auto; /* Empuja el botón al fondo siempre */
-            background: #000; color: #fff; border: 0;
-            padding: 20px; border-radius: 12px; font-weight: 600;
-            font-size: 1rem; cursor: pointer; display: flex; 
-            align-items: center; justify-content: center; gap: 10px;
-            transition: 0.2s;
+            background: #000; color: white;
+            border: none; padding: 16px; border-radius: 12px;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; margin-top: auto;
         }
-        .btn-ar:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-ar:active { transform: scale(0.98); }
 
         /* Responsive */
         @media (max-width: 900px) {
-            .app-grid { 
-                grid-template-columns: 1fr; 
-                grid-template-rows: 60% 40%;
-                border-radius: 0; height: 100dvh; max-height: none;
+            .app-container { 
+                grid-template-columns: 1fr; grid-template-rows: 65% 35%; 
+                max-height: 100dvh; 
             }
-            .info-panel { padding: 20px; }
-            h1 { font-size: 1.5rem; margin-top: 0; }
+            .info-wrapper { padding: 24px; }
+            h1 { font-size: 1.5rem; }
+            p { font-size: 0.9rem; margin-bottom: 15px; }
+            .btn-ar { padding: 14px; }
         }
     </style>
 </head>
 <body>
 
-<div class="app-grid">
-    <div class="viewer-container">
-        <!-- Loader con Porcentaje -->
-        <div class="loader" id="loader">
-            <div class="spinner"></div>
-            <div class="progress-text" id="progress-text">0%</div>
-        </div>
+    <div class="app-container">
         
-        <!-- Mensaje de Error -->
-        <div class="error-msg" id="error-msg">Error al cargar el modelo 3D.</div>
+        <div class="viewer-wrapper">
+            <!-- Loader -->
+            <div class="loader-overlay" id="loader">
+                <div class="spinner"></div>
+                <div id="progress-text">0%</div>
+            </div>
 
-        <model-viewer 
-            id="viewer"
-            src="assets/modelo.glb"
-            poster="assets/poster.webp"
-            alt="Modelo 3D"
-            
-            ar ar-placement="floor" ar-modes="webxr scene-viewer quick-look"
-            
-            camera-controls 
-            shadow-intensity="1" 
-            exposure="1.2"
-            min-camera-orbit="auto auto 5%" 
-            max-camera-orbit="auto auto 100%"
-        >
-            <!-- Slot personalizado para ocultar el botón nativo feo -->
-            <button slot="ar-button" style="display:none"></button>
-        </model-viewer>
-        
-        <!-- Controles flotantes limpios -->
-        <div style="position: absolute; bottom: 20px; right: 20px;">
-            <button onclick="resetView()" style="background:white; border:none; padding:10px; border-radius:50%; box-shadow:0 4px 12px rgba(0,0,0,0.1); cursor:pointer;">
-                <span class="material-icons-round">center_focus_strong</span>
+            <!-- 
+                CORRECCIONES DE ESTABILIDAD APLICADAS:
+                1. ar-scale="auto": Vital para evitar el deslizamiento si la escala del archivo no es 1:1.
+                2. ar-modes="scene-viewer...": Scene Viewer (Android Nativo) es más estable que WebXR.
+                3. shadow-intensity="1": Ayuda al sensor a anclar el objeto visualmente.
+            -->
+            <model-viewer 
+                id="ar-viewer"
+                src="assets/modelo.glb"
+                poster="assets/poster.webp"
+                alt="Modelo 3D"
+                
+                ar
+                ar-placement="floor"
+                ar-modes="scene-viewer webxr quick-look"
+                ar-scale="auto"
+                
+                camera-controls
+                shadow-intensity="1"
+                shadow-softness="0.5"
+                exposure="1"
+                environment-image="neutral"
+            >
+                <button slot="ar-button" style="display:none"></button>
+            </model-viewer>
+
+            <div class="controls-overlay">
+                <button class="icon-btn" onclick="resetCam()" aria-label="Resetear vista">
+                    <span class="material-icons-round">center_focus_strong</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="info-wrapper">
+            <div>
+                <h1>Producto AR</h1>
+                <p>
+                    Para una mejor experiencia:<br>
+                    • Apunta al suelo en una zona bien iluminada.<br>
+                    • Evita suelos blancos lisos o reflectantes.<br>
+                    • Si el objeto se ve muy grande o pequeño, pellizca la pantalla para ajustar.
+                </p>
+            </div>
+
+            <button class="btn-ar" onclick="activateAR()">
+                <span class="material-icons-round">view_in_ar</span>
+                <span>Ver en mi espacio</span>
             </button>
         </div>
+
     </div>
 
-    <div class="info-panel">
-        <div>
-            <h1>Silla Eames AR</h1>
-            <p style="color:#666; margin-bottom: 30px;">
-                Visualiza este modelo en tu espacio. Compatible con iOS y Android.
-                Asegúrate de tener buena iluminación.
-            </p>
-        </div>
+    <script>
+        const viewer = document.getElementById('ar-viewer');
+        const loader = document.getElementById('loader');
+        const progressText = document.getElementById('progress-text');
 
-        <button class="btn-ar" id="ar-btn" onclick="triggerAR()">
-            <span class="material-icons-round">view_in_ar</span>
-            Ver en mi espacio
-        </button>
-    </div>
-</div>
+        // Loader con porcentaje real
+        viewer.addEventListener('progress', (e) => {
+            const percent = Math.round(e.detail.totalProgress * 100);
+            progressText.innerText = `${percent}%`;
+        });
 
-<script>
-    const viewer = document.querySelector('#viewer');
-    const loader = document.querySelector('#loader');
-    const progressText = document.querySelector('#progress-text');
-    const errorMsg = document.querySelector('#error-msg');
-    const arBtn = document.querySelector('#ar-btn');
+        // Ocultar loader cuando carga
+        viewer.addEventListener('load', () => {
+            loader.classList.add('hidden');
+        });
 
-    // 1. Manejo de Progreso Real
-    viewer.addEventListener('progress', (e) => {
-        const percentage = Math.round(e.detail.totalProgress * 100);
-        progressText.innerText = `${percentage}%`;
-    });
-
-    // 2. Carga Exitosa
-    viewer.addEventListener('load', () => {
-        loader.classList.add('hide');
-        console.log("Modelo cargado correctamente");
-    });
-
-    // 3. Manejo de Errores
-    viewer.addEventListener('error', (e) => {
-        console.error(e);
-        loader.classList.add('hide');
-        errorMsg.style.display = 'block';
-        arBtn.disabled = true; // Desactivar botón si falla
-        arBtn.innerText = "Modelo no disponible";
-    });
-
-    // 4. Resetear Cámara
-    function resetView() {
-        viewer.cameraOrbit = "0deg 75deg 105%";
-        viewer.fieldOfView = "auto";
-    }
-
-    // 5. Activar AR con Feedback
-    function triggerAR() {
-        if (viewer.canActivateAR) {
-            viewer.activateAR();
-        } else {
-            // Fallback elegante
-            alert("Tu dispositivo no soporta Realidad Aumentada o no tienes los servicios de Google Play AR (Android).");
+        // Resetear cámara
+        function resetCam() { 
+            viewer.cameraOrbit = "0deg 75deg 105%"; 
+            viewer.fieldOfView = "auto"; 
         }
-    }
-</script>
 
+        // Activar AR
+        function activateAR() {
+            if (viewer.canActivateAR) {
+                viewer.activateAR();
+            } else {
+                alert("Para ver en AR, abre esta página en un móvil (Chrome/Safari).");
+            }
+        }
+    </script>
 </body>
 </html>
