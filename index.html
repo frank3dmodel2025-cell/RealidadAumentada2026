@@ -2,246 +2,98 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Visualizador AR - Estable y Compatible</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AR Simple</title>
     
-    <!-- Google Model Viewer 3.4.0 -->
+    <!-- Model Viewer -->
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-
     <style>
-        :root { --accent: #000; --bg: #f5f5f7; }
+        body { margin: 0; height: 100vh; background-color: #f0f0f0; font-family: sans-serif; }
         
-        body {
-            margin: 0; padding: 0;
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            /* Fallback de altura por si 100dvh falla */
-            height: 100vh; height: 100dvh; 
-            width: 100vw;
-            overflow: hidden;
-            display: flex; align-items: center; justify-content: center;
+        #card {
+            margin: 0 auto;
+            display: flex; flex-direction: column;
+            height: 100%; max-width: 600px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
-        .app-container {
-            background: #ffffff;
-            width: 100%; height: 100%;
-            max-width: 1400px; max-height: 95dvh;
-            display: grid; grid-template-columns: 1.5fr 1fr;
-            overflow: hidden;
-        }
-        
-        @media (min-width: 900px) {
-            .app-container {
-                border-radius: 20px;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                width: 95%;
-            }
+        /* El visor debe tener altura definida */
+        model-viewer {
+            width: 100%;
+            height: 80%; /* Ocupa el 80% de la pantalla */
+            background-color: #eee;
+            --poster-color: #eee;
         }
 
-        .viewer-wrapper {
-            position: relative;
-            background: #eee; /* Fondo gris para ver si carga el div */
-            width: 100%; height: 100%;
-        }
-
-        model-viewer { 
-            width: 100%; height: 100%; 
-            --poster-color: transparent;
-            /* Si no carga, mostrará un borde rojo sutil para debug */
-            outline: none;
-        }
-
-        /* Estados de carga */
-        .loader-overlay {
-            position: absolute; inset: 0;
-            background: white; z-index: 20;
+        .controls {
+            height: 20%;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            transition: opacity 0.5s; pointer-events: none;
-        }
-        .loader-overlay.hidden { opacity: 0; }
-        
-        .spinner {
-            width: 32px; height: 32px; border: 3px solid #eee;
-            border-top-color: #000; border-radius: 50%;
-            animation: spin 1s infinite linear; margin-bottom: 15px;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        
-        .error-message {
-            display: none; color: #d32f2f; margin-top: 15px; 
-            font-weight: bold; text-align: center; padding: 0 20px;
+            padding: 10px;
         }
 
-        .controls-overlay {
-            position: absolute; bottom: 20px; right: 20px; z-index: 5;
-        }
-        .icon-btn {
-            background: white; border: none; width: 44px; height: 44px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer;
-        }
-
-        .info-wrapper {
-            padding: 30px;
-            display: flex; flex-direction: column; 
-            background: white;
-            justify-content: center;
-        }
-
-        h1 { margin: 0 0 10px 0; font-size: 1.8rem; letter-spacing: -0.5px; }
-        p { color: #666; line-height: 1.5; margin-bottom: 30px; }
-
-        .btn-ar {
-            background: #000; color: white;
-            border: none; padding: 18px; border-radius: 12px;
-            font-size: 1rem; font-weight: 700; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; margin-top: auto;
-            transition: transform 0.1s;
-        }
-        .btn-ar:active { transform: scale(0.96); }
-
-        @media (max-width: 900px) {
-            .app-container { 
-                grid-template-columns: 1fr; 
-                grid-template-rows: 60% 40%; 
-                max-height: 100dvh; 
-            }
-            .info-wrapper { padding: 20px; }
-            h1 { font-size: 1.4rem; }
-            p { font-size: 0.9rem; margin-bottom: 15px; }
-            .btn-ar { padding: 15px; }
+        /* Botón AR personalizado */
+        .ar-button {
+            background-color: #000; color: white;
+            border: none; border-radius: 30px;
+            padding: 15px 30px; font-size: 16px; font-weight: bold;
+            cursor: pointer;
+            display: block;
         }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        
-        <div class="viewer-wrapper">
-            <!-- Loader -->
-            <div class="loader-overlay" id="loader">
-                <div class="spinner"></div>
-                <div id="progress-text">Iniciando...</div>
-                <div class="error-message" id="error-text"></div>
-            </div>
-
-            <!-- 
-                CORRECCIONES APLICADAS:
-                1. ar-modes="webxr scene-viewer quick-look": 
-                   Restauramos 'webxr' primero para asegurar que cargue en todos los Androids.
-                2. ar-placement="floor": 
-                   Fuerza la detección de planos horizontales.
-                3. camera-orbit y field-of-view: 
-                   Valores por defecto para asegurar que el modelo se ve centrado al inicio.
-                4. environment-image: 
-                   Uso "neutral" para garantizar iluminación si el modelo es negro.
-            -->
-            <model-viewer 
-                id="ar-viewer"
-                src="assets/modelo.glb"
-                poster="assets/poster.webp"
-                alt="Modelo 3D"
-                
-                ar
-                ar-placement="floor"
-                ar-modes="webxr scene-viewer quick-look"
-                ar-scale="auto"
-                
-                camera-controls
-                auto-rotate
-                camera-orbit="0deg 75deg 105%"
-                min-camera-orbit="auto auto 5%"
-                max-camera-orbit="auto auto 500%"
-                
-                shadow-intensity="1"
-                environment-image="neutral"
-                exposure="1"
-            >
-                <button slot="ar-button" style="display:none"></button>
-            </model-viewer>
-
-            <div class="controls-overlay">
-                <button class="icon-btn" onclick="resetCam()" title="Resetear Vista">
-                    <span class="material-icons-round">center_focus_strong</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="info-wrapper">
-            <div>
-                <h1>Visualizador 3D / AR</h1>
-                <p>
-                    <strong>Instrucciones AR:</strong><br>
-                    1. Pulsa el botón "Ver en mi espacio".<br>
-                    2. Apunta al suelo y mueve el móvil en círculos.<br>
-                    3. Si el objeto se mueve, usa un dedo para arrastrarlo al sitio correcto.
-                </p>
-            </div>
-
-            <button class="btn-ar" id="ar-btn" onclick="activateAR()">
-                <span class="material-icons-round">view_in_ar</span>
-                <span>Ver en mi espacio</span>
+    <div id="card">
+        <!-- 
+            USANDO MODELO ONLINE DE GOOGLE PARA DESCARTAR ERRORES LOCALES 
+            src: Astronauta de prueba
+        -->
+        <model-viewer 
+            id="visor"
+            src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+            alt="Astronauta Test"
+            
+            ar
+            ar-modes="scene-viewer webxr quick-look"
+            ar-placement="floor"
+            ar-scale="fixed"
+            
+            camera-controls
+            auto-rotate
+            shadow-intensity="1"
+        >
+            <!-- Botón AR Nativo (personalizado) -->
+            <button slot="ar-button" class="ar-button">
+                👋 Activar AR (Tap to Place)
             </button>
-        </div>
+        </model-viewer>
 
+        <div class="controls">
+            <p><strong>Prueba de Diagnóstico</strong></p>
+            <p id="status">Cargando modelo...</p>
+        </div>
     </div>
 
     <script>
-        const viewer = document.getElementById('ar-viewer');
-        const loader = document.getElementById('loader');
-        const progressText = document.getElementById('progress-text');
-        const errorText = document.getElementById('error-text');
-        const arBtn = document.getElementById('ar-btn');
+        const viewer = document.getElementById('visor');
+        const status = document.getElementById('status');
 
-        // Monitor de progreso de carga
-        viewer.addEventListener('progress', (e) => {
-            const percent = Math.round(e.detail.totalProgress * 100);
-            progressText.innerText = `Descargando modelo: ${percent}%`;
-        });
-
-        // Carga exitosa
+        // Verificar si carga
         viewer.addEventListener('load', () => {
-            loader.classList.add('hidden');
-            console.log("Modelo cargado OK");
+            status.innerText = "✅ Modelo cargado (Si no lo ves, rota la cámara)";
+            status.style.color = "green";
         });
 
-        // Manejo de errores CRÍTICO
+        // Verificar errores
         viewer.addEventListener('error', (e) => {
-            console.error("Error Model-Viewer:", e);
-            loader.classList.remove('hidden');
-            document.querySelector('.spinner').style.display = 'none';
-            progressText.style.display = 'none';
-            
-            errorText.style.display = 'block';
-            errorText.innerHTML = `
-                ERROR AL CARGAR:<br>
-                1. Verifica que 'assets/modelo.glb' existe.<br>
-                2. Asegúrate de usar HTTPS o Localhost.<br>
-                (No abras el archivo directamente con doble clic)
-            `;
-            
-            arBtn.disabled = true;
-            arBtn.style.opacity = "0.5";
-            arBtn.innerText = "Error de carga";
+            console.error(e);
+            status.innerHTML = "❌ ERROR: No se pudo cargar el modelo.<br>Revisa tu conexión a internet.";
+            status.style.color = "red";
         });
-
-        function resetCam() { 
-            viewer.cameraOrbit = "0deg 75deg 105%"; 
-            viewer.fieldOfView = "auto"; 
-        }
-
-        function activateAR() {
-            if (viewer.canActivateAR) {
-                viewer.activateAR();
-            } else {
-                alert("Tu dispositivo no soporta Realidad Aumentada o no tienes Google Play Services for AR actualizado.");
-            }
-        }
     </script>
+
 </body>
 </html>
